@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.local
+
+# Debug
+debug/
+
+# IDE
+.idea/
+.vscode/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Claude Code local settings
+.claude/settings.local.json
