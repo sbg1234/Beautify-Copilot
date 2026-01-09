@@ -6,17 +6,17 @@ A "Financing Portal Watcher" that monitors the Beautifi financing portal for loa
 
 ## Current Status
 
-**Phase:** Working - tested successfully on 2026-01-08
+**Phase:** Working - tested successfully on 2026-01-09
 
 **Design document:** `docs/plans/2026-01-08-beautifi-watcher-design.md`
 
 ## Test Results
 
 - Successfully logged in to Beautifi portal
-- Scraped 21 applications (18 Submitted, 3 Accepted & Approved, 0 In-Progress)
-- First run: Established baseline, no notifications sent
+- Scraped 27 applications (19 Submitted, 3 Accepted & Approved, 0 In-Progress, 5 Funded)
+- Funded applications tracked in Google Sheets but excluded from Slack notifications
 - Subsequent runs: 0 changes = 0 notifications (working correctly)
-- Run time: ~28 seconds
+- Run time: ~32 seconds
 
 ## What's Been Built
 
@@ -149,10 +149,11 @@ Credentials stored in `.env` (not committed):
 ### 2026-01-09
 
 **What was accomplished:**
-- Added "Funded" tab to monitoring based on user feedback that Mandy uses all tabs except Subsidized
-- Added filter to skip ALL Slack notifications for "Funded" applications (any app in Funded tab or with Funded status)
-- Enhanced status/tab change notifications to include requested amount, approved amount, and current tab/status for quick context
-- Upgraded Playwright from 1.40.0 to 1.57.0 (old version was crashing on macOS with Node.js v24)
+1. Added "Funded" tab to monitoring based on user feedback (Mandy uses all tabs except Subsidized)
+2. Added filter to skip ALL Slack notifications for "Funded" applications (any app in Funded tab or with Funded status)
+3. Enhanced status/tab change notifications to include requested amount, approved amount, and current tab/status
+4. Upgraded Playwright from 1.40.0 to 1.57.0 (old version was crashing on macOS with Node.js v24)
+5. Verified notification format outputs correctly with both Requested and Approved fields
 
 **Files changed:**
 - `src/scraper/types.ts` - Added 'Funded' to TabName type
@@ -163,9 +164,23 @@ Credentials stored in `.env` (not committed):
 - `Dockerfile` - Updated to use mcr.microsoft.com/playwright:v1.57.0-noble
 - `CLAUDE.md` - Updated documentation
 
+**Notification format (verified):**
+```
+🔄 Status Update
+{Name} moved from `{old status}` → `{new status}`
+Requested: ${amount or N/A}
+Approved: ${amount or N/A}
+Tab: {tab name}
+```
+
 **Key decisions:**
-- Funded tab is scraped and tracked in Google Sheets, but NO notifications for Funded applications (per user request)
-- Status/tab notifications now include financial context so users don't need to search Slack history or portal
+- Funded tab is scraped and tracked in Google Sheets, but NO notifications for Funded applications
+- Status/tab notifications now include financial context (requested/approved amounts) for quick review
+- Manual test runs can be triggered from Railway dashboard (Cron → Run button)
+
+**Problems encountered:**
+1. Playwright 1.40.0 kept crashing with SEGV errors on macOS + Node.js v24 → Upgraded to 1.57.0
+2. Initial Funded filter only blocked status changes, not new applications → Fixed to block ALL Funded-related notifications
 
 ### Next Steps (Optional Enhancements)
 1. Connect dashboard to live Google Sheets data via API
