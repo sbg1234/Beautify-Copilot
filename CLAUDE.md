@@ -152,7 +152,7 @@ Credentials stored in `.env` (not committed):
 1. Added "Funded" tab to monitoring based on user feedback (Mandy uses all tabs except Subsidized)
 2. Added filter to skip ALL Slack notifications for "Funded" applications (any app in Funded tab or with Funded status)
 3. Enhanced status/tab change notifications to include requested amount, approved amount, and current tab/status
-4. Upgraded Playwright from 1.40.0 to 1.57.0 (old version was crashing on macOS with Node.js v24)
+4. Upgraded Playwright from 1.40.0 to 1.49.1 (1.40.0 crashed on macOS, 1.57.0 has no Docker image yet)
 5. Verified notification format outputs correctly with both Requested and Approved fields
 
 **Files changed:**
@@ -160,8 +160,8 @@ Credentials stored in `.env` (not committed):
 - `src/scraper/extractor.ts` - Added 'Funded' to TABS_TO_SCRAPE, TAB_URL_PATHS, and tabCounts
 - `src/notifications/slack.ts` - Added `shouldSkipNotification()` filter to suppress ALL Funded-related alerts
 - `src/notifications/formatters.ts` - Enhanced `formatStatusChange()` and `formatTabChange()` with amount/context fields
-- `package.json` - Upgraded Playwright to ^1.57.0
-- `Dockerfile` - Updated to use mcr.microsoft.com/playwright:v1.57.0-noble
+- `package.json` - Playwright pinned to 1.49.1 (stable version with Docker image)
+- `Dockerfile` - Updated to use mcr.microsoft.com/playwright:v1.49.1-jammy
 - `CLAUDE.md` - Updated documentation
 
 **Notification format (verified):**
@@ -181,6 +181,8 @@ Tab: {tab name}
 **Problems encountered:**
 1. Playwright 1.40.0 kept crashing with SEGV errors on macOS + Node.js v24 → Upgraded to 1.57.0
 2. Initial Funded filter only blocked status changes, not new applications → Fixed to block ALL Funded-related notifications
+3. Playwright 1.57.0 Docker image doesn't exist yet → Downgraded to 1.49.1 with `v1.49.1-jammy` image
+4. Tried `v1.57.0-noble` then `v1.57.0-focal` - neither exist → Settled on stable 1.49.1
 
 ### Next Steps (Optional Enhancements)
 1. Connect dashboard to live Google Sheets data via API
