@@ -2,7 +2,7 @@
  * Types for scraped application data from Beautifi portal
  */
 
-export type TabName = 'In-Progress' | 'Submitted' | 'Accepted & Approved';
+export type TabName = 'In-Progress' | 'Submitted' | 'Accepted & Approved' | 'Funded';
 
 export interface ScrapedApplication {
   applicationId: string;

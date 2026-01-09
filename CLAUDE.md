@@ -55,7 +55,7 @@ All core modules implemented in `src/`:
 
 ## Key Design Decisions
 
-1. **Monitor 3 tabs only:** In-Progress, Submitted, Accepted & Approved (skip Funded/Subsidized)
+1. **Monitor 4 tabs:** In-Progress, Submitted, Accepted & Approved, Funded (skip Subsidized only)
 2. **First run = baseline:** No notifications on first run, just establishes baseline
 3. **Only open apps:** Closed applications filtered out from notifications
 4. **Changes only:** Only notify when something actually changes (status, amount, etc.)
@@ -79,6 +79,7 @@ The portal uses a multi-step login:
 - In-Progress: `https://app.beautifi.com/partners/{partnerId}/in-progress`
 - Submitted: `https://app.beautifi.com/partners/{partnerId}/submitted`
 - Accepted & Approved: `https://app.beautifi.com/partners/{partnerId}/accepted-approved`
+- Funded: `https://app.beautifi.com/partners/{partnerId}/funded`
 
 Partner ID for Sleeve Clinic: `7571`
 
@@ -136,18 +137,30 @@ Credentials stored in `.env` (not committed):
 3. package-lock.json out of sync → Ran `npm install` to regenerate
 4. Missing environment variables in Railway → User needs to add via Variables tab
 
-**Incomplete work:**
-- Railway deployment failing due to missing environment variables
-- User needs to paste .env contents into Railway Variables → RAW Editor
+**Final status:** ✅ **FULLY OPERATIONAL**
+- Railway cron job running successfully every 30 minutes
+- Last successful run: 21 applications scraped in 29 seconds
+- All environment variables configured
 
-**Known issues:**
+**Known limitations:**
 - Dashboard shows hardcoded mock data, not live data from Google Sheets
 - To show live data would need to connect dashboard to Google Sheets API
 
-### Next Steps
-1. **Add environment variables to Railway** - Paste .env contents into Beautify-Copilot → Variables → RAW Editor
-2. **Verify cron job runs successfully** - Check Run Log in Google Sheets
-3. **Optional:** Connect dashboard to live Google Sheets data
+### 2026-01-09
+
+**What was accomplished:**
+- Added "Funded" tab to monitoring based on user feedback that Mandy uses all tabs except Subsidized
+
+**Files changed:**
+- `src/scraper/types.ts` - Added 'Funded' to TabName type
+- `src/scraper/extractor.ts` - Added 'Funded' to TABS_TO_SCRAPE, TAB_URL_PATHS, and tabCounts
+- `CLAUDE.md` - Updated documentation
+
+**Note:** Next deployment will automatically pick up these changes and start monitoring the Funded tab.
+
+### Next Steps (Optional Enhancements)
+1. Connect dashboard to live Google Sheets data via API
+2. Add more detailed application tracking
 
 ## Reference Materials
 

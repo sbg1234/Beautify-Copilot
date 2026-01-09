@@ -7,13 +7,14 @@ import { Page } from 'playwright';
 import { ScrapedApplication, ScrapeResult, TabName } from './types.js';
 import { log } from './browser.js';
 
-const TABS_TO_SCRAPE: TabName[] = ['In-Progress', 'Submitted', 'Accepted & Approved'];
+const TABS_TO_SCRAPE: TabName[] = ['In-Progress', 'Submitted', 'Accepted & Approved', 'Funded'];
 
 // Map tab names to URL paths
 const TAB_URL_PATHS: Record<TabName, string> = {
   'In-Progress': 'in-progress',
   'Submitted': 'submitted',
   'Accepted & Approved': 'accepted-approved',
+  'Funded': 'funded',
 };
 
 export async function scrapeAllTabs(page: Page): Promise<ScrapeResult> {
@@ -22,6 +23,7 @@ export async function scrapeAllTabs(page: Page): Promise<ScrapeResult> {
     'In-Progress': 0,
     'Submitted': 0,
     'Accepted & Approved': 0,
+    'Funded': 0,
   };
 
   // Get the partner ID from current URL
