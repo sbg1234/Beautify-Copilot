@@ -86,7 +86,7 @@ Partner ID for Sleeve Clinic: `7571`
 ## Google Sheets Schema
 
 ### Sheet 1: Applications
-Columns: application_id, tab, applicant_name, email, status, requested_amount, approved_amount, notes, loss_reason, created_at, last_updated_at, last_scraped_at, raw_json
+Columns: application_id, tab, first_name, last_name, email, status, requested_amount, approved_amount, notes, loss_reason, created_at, last_updated_at, last_scraped_at, raw_json
 
 ### Sheet 2: Run Log
 Columns: timestamp, status, duration_seconds, applications_found, changes_detected, new_applications, errors
@@ -200,6 +200,51 @@ Tab: {tab name}
 - `5695366` Fix Dockerfile to use focal instead of noble
 - `c0de8ee` Downgrade Playwright to 1.49.1 for Docker compatibility
 - `874b2b9` Update CLAUDE.md with Playwright version fix details
+
+### 2026-01-09 (Afternoon Session - 10:30 AM - 2:00 PM EST)
+
+**What was accomplished:**
+1. Fixed data extraction - rewrote extractor to use proper gridtable CSS selectors instead of text parsing
+2. Fixed mixed-up patient names/emails - DOM-based extraction now correctly isolates each application row
+3. Made applicationId stable - now uses just email (lowercase) instead of email+createdAt
+4. Added title case name formatting - "DAMARIS FERNANDEZ" → "Damaris Fernandez"
+5. Split names into firstName/lastName columns in Google Sheet
+6. Simplified notifications to 2 types: "New Application" and "Status Update"
+7. Updated Sleeve Command Centre to read new column schema
+8. Deployed both apps to Railway
+
+**Files changed (Beautify Autopilot):**
+- `src/scraper/extractor.ts` - Complete rewrite with gridtable selectors, title case, name splitting
+- `src/scraper/types.ts` - Changed applicantName to firstName/lastName
+- `src/storage/types.ts` - Updated schema and headers for new columns
+- `src/storage/sheets.ts` - Updated column indices (A:N instead of A:M)
+- `src/diff/engine.ts` - Updated toStoredApplications for new fields
+- `src/notifications/formatters.ts` - Simplified to 2 notification types
+- `src/notifications/slack.ts` - Updated name display
+
+**Files changed (Sleeve Command Centre):**
+- `server/routes.ts` - Updated beautify-reports endpoint for new column indices
+- `client/src/pages/financing.tsx` - Updated interface and display for firstName/lastName
+
+**Key decisions:**
+- Use email as stable applicationId (unique per patient, never changes)
+- Keep notifications simple: New Application or Status Update (covers all change types)
+- Title case all names for consistent display
+
+**Problems encountered:**
+1. Original text-based parsing mixed up patient data → Fixed with DOM-based gridtable extraction
+2. applicationId instability (date format variations) → Fixed by using just email
+3. Browser security blocks fetch with credentials in URL → Use setHTTPCredentials() for Playwright testing
+
+**Final status:** ✅ **DEPLOYED AND WORKING**
+- Beautify Autopilot: `e564ac7` - Deployed to Railway
+- Sleeve Command Centre: `4ab79ce` - Deployed to Railway
+- 28 applications tracked correctly (0 In-Progress, 19 Submitted, 4 Accepted & Approved, 5 Funded)
+- Names properly formatted and split into first/last columns
+
+**Commits this session:**
+- `e564ac7` Improve data extraction and simplify notifications (Beautify Autopilot)
+- `4ab79ce` Update Beautify Reports for new column schema (Sleeve Command Centre)
 
 ### Next Steps (Optional Enhancements)
 1. Connect dashboard to live Google Sheets data via API (user opted to just use Sheet directly)
