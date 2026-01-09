@@ -1,5 +1,5 @@
 # Use Playwright's official image which includes Chromium
-FROM mcr.microsoft.com/playwright:v1.57.0-focal
+FROM mcr.microsoft.com/playwright:v1.49.1-jammy
 
 WORKDIR /app
 
