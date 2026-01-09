@@ -80,13 +80,13 @@ function shouldSkipNotification(change: Change): boolean {
 
   // Skip ANY notification for applications in the Funded tab
   if (app.tab === 'Funded') {
-    console.log(`Skipping notification: application in Funded tab for ${app.applicantName}`);
+    console.log(`Skipping notification: application in Funded tab for ${app.firstName} ${app.lastName}`);
     return true;
   }
 
   // Skip ANY notification for applications with Funded status
   if (app.status && app.status.toLowerCase() === 'funded') {
-    console.log(`Skipping notification: application has Funded status for ${app.applicantName}`);
+    console.log(`Skipping notification: application has Funded status for ${app.firstName} ${app.lastName}`);
     return true;
   }
 

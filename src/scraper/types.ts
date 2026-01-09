@@ -7,7 +7,8 @@ export type TabName = 'In-Progress' | 'Submitted' | 'Accepted & Approved' | 'Fun
 export interface ScrapedApplication {
   applicationId: string;
   tab: TabName;
-  applicantName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   status: string;
   requestedAmount: number | null;

@@ -88,24 +88,25 @@ export async function getApplications(): Promise<StoredApplication[]> {
 
   const response = await client.spreadsheets.values.get({
     spreadsheetId,
-    range: `${APPLICATIONS_SHEET}!A2:M`,
+    range: `${APPLICATIONS_SHEET}!A2:N`,
   });
 
   const rows = response.data.values || [];
   return rows.map(row => ({
     applicationId: row[0] || '',
     tab: row[1] || '',
-    applicantName: row[2] || '',
-    email: row[3] || '',
-    status: row[4] || '',
-    requestedAmount: row[5] ? parseFloat(row[5]) : null,
-    approvedAmount: row[6] ? parseFloat(row[6]) : null,
-    notes: row[7] || '',
-    lossReason: row[8] || null,
-    createdAt: row[9] || '',
-    lastUpdatedAt: row[10] || '',
-    lastScrapedAt: row[11] || '',
-    rawJson: row[12] || '',
+    firstName: row[2] || '',
+    lastName: row[3] || '',
+    email: row[4] || '',
+    status: row[5] || '',
+    requestedAmount: row[6] ? parseFloat(row[6]) : null,
+    approvedAmount: row[7] ? parseFloat(row[7]) : null,
+    notes: row[8] || '',
+    lossReason: row[9] || null,
+    createdAt: row[10] || '',
+    lastUpdatedAt: row[11] || '',
+    lastScrapedAt: row[12] || '',
+    rawJson: row[13] || '',
   }));
 }
 
@@ -129,7 +130,7 @@ export async function upsertApplications(
 
     if (existingRow) {
       updates.push({
-        range: `${APPLICATIONS_SHEET}!A${existingRow}:M${existingRow}`,
+        range: `${APPLICATIONS_SHEET}!A${existingRow}:N${existingRow}`,
         values: [row],
       });
     } else {
@@ -152,7 +153,7 @@ export async function upsertApplications(
   if (appends.length > 0) {
     await client.spreadsheets.values.append({
       spreadsheetId,
-      range: `${APPLICATIONS_SHEET}!A:M`,
+      range: `${APPLICATIONS_SHEET}!A:N`,
       valueInputOption: 'RAW',
       requestBody: { values: appends },
     });
@@ -163,7 +164,8 @@ function applicationToRow(app: StoredApplication): (string | number | null)[] {
   return [
     app.applicationId,
     app.tab,
-    app.applicantName,
+    app.firstName,
+    app.lastName,
     app.email,
     app.status,
     app.requestedAmount,

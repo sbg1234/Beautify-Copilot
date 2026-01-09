@@ -5,7 +5,8 @@
 export interface StoredApplication {
   applicationId: string;
   tab: string;
-  applicantName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   status: string;
   requestedAmount: number | null;
@@ -34,7 +35,8 @@ export const RUN_LOG_SHEET = 'Run Log';
 export const APPLICATION_HEADERS = [
   'application_id',
   'tab',
-  'applicant_name',
+  'first_name',
+  'last_name',
   'email',
   'status',
   'requested_amount',

@@ -1,6 +1,6 @@
 /**
  * Data extraction from Beautifi portal
- * Navigates to each tab page and parses application data from the DOM
+ * Uses gridtable CSS selectors to extract structured application data
  */
 
 import { Page } from 'playwright';
@@ -62,131 +62,256 @@ async function scrapeTab(
 
   log(`Navigating to: ${url}`);
   await page.goto(url, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(3000); // Wait for dynamic content
 
-  // Get the page text content
-  const bodyText = await page.locator('body').textContent() || '';
+  // Extract applications using gridtable structure
+  // The portal uses a CSS grid with classes like gridtable-cell, gridtable-even/odd, gridtable-rowfooter
+  // Structure per row: 6 cells (name, source, doctor, procedure, amounts, dates) + 1 rowfooter
+  const applications = await page.evaluate((tabName) => {
+    const results: Array<{
+      name: string;
+      email: string;
+      status: string;
+      requestedAmount: number | null;
+      approvedAmount: number | null;
+      maxApproved: number | null;
+      createdAt: string;
+      lastUpdatedAt: string;
+      notes: string;
+      lossReason: string | null;
+      source: string;
+      doctor: string;
+      procedure: string;
+    }> = [];
 
-  // Parse applications from the text
-  const applications = parseApplicationsFromText(bodyText, tab);
+    // Find the gridtable container
+    const gridtable = document.querySelector('.gridtable');
+    if (!gridtable) return results;
 
-  return applications;
-}
+    // Find all first cells of application rows
+    // First cells have min-w-[240px] class and contain the name/email
+    const firstCells = gridtable.querySelectorAll('.gridtable-cell[class*="min-w-"]');
 
-function parseApplicationsFromText(text: string, tab: TabName): ScrapedApplication[] {
-  const applications: ScrapedApplication[] = [];
+    for (const firstCell of firstCells) {
+      // Skip header cells
+      if (firstCell.querySelector('button')) continue;
 
-  // Known statuses in the system
-  const statuses = [
-    'Approved for Loan',
-    'Credit Review',
-    'Closed',
-    'Reaching Out to Patient',
-    'Gathering Additional Information',
-    'Ready for Funding',
-    'Funded',
-    'N/A - Contact Beautifi',
-  ];
+      // Get the row class (gridtable-even or gridtable-odd) to identify all cells in this row
+      const isEven = firstCell.classList.contains('gridtable-even');
+      const isOdd = firstCell.classList.contains('gridtable-odd');
+      if (!isEven && !isOdd) continue;
 
-  // Create regex to find status markers
-  const statusPattern = statuses.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  const statusRegex = new RegExp(`(${statusPattern})`, 'g');
+      const rowClass = isEven ? 'gridtable-even' : 'gridtable-odd';
 
-  // Find email patterns - they mark distinct applications
-  const emailPattern = /([a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
-  const emails = [...text.matchAll(emailPattern)].map(m => m[1]);
+      // Extract name and status from first cell
+      const nameElement = firstCell.querySelector('.font-medium');
+      if (!nameElement) continue;
 
-  // Remove system emails
-  const appEmails = emails.filter(e => !e.includes('sleeveclinic.ca') && !e.includes('beautifi'));
+      // Get name (text content before the badge span)
+      let nameText = '';
+      for (const node of nameElement.childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          nameText += node.textContent || '';
+        }
+      }
+      nameText = nameText.trim();
 
-  log(`Found ${appEmails.length} unique application emails`);
+      // Get status from badge
+      const statusBadge = nameElement.querySelector('.badge');
+      const status = statusBadge?.textContent?.trim() || '';
 
-  for (const email of appEmails) {
-    // Find the section of text around this email
-    const emailIndex = text.indexOf(email);
-    if (emailIndex === -1) continue;
+      // Get email from opacity-60 div
+      const emailElement = firstCell.querySelector('.opacity-60');
+      const email = emailElement?.textContent?.trim() || '';
 
-    // Get text before and after the email (500 chars each direction)
-    const start = Math.max(0, emailIndex - 500);
-    const end = Math.min(text.length, emailIndex + 500);
-    const section = text.substring(start, end);
+      if (!nameText || !email) continue;
 
-    // Extract name - usually appears before the email
-    // Pattern: Name appears before status or email
-    const beforeEmail = text.substring(start, emailIndex);
-    const nameMatch = beforeEmail.match(/([A-Z][a-z]+ [A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s*(?:Approved|Credit|Closed|Reaching|Gathering|Ready|Funded|N\/A|$)/);
-    const name = nameMatch ? nameMatch[1].trim() : extractNameFromSection(beforeEmail);
+      // Find all cells in the same row by looking for siblings with the same row class
+      // We need to collect all cells between this first cell and the next first cell
+      const allCells = gridtable.querySelectorAll(`.gridtable-cell.${rowClass}`);
+      const cellsArray = Array.from(allCells);
 
-    // Extract status
-    const statusMatch = section.match(new RegExp(statusPattern));
-    const status = statusMatch ? statusMatch[0] : '';
+      // Find our first cell in the array
+      const firstCellIndex = cellsArray.indexOf(firstCell as Element);
+      if (firstCellIndex === -1) continue;
 
-    // Extract amounts
-    const requestedMatch = section.match(/Requested Amount\$?([\d,]+(?:\.\d{2})?)/);
-    const approvedMatch = section.match(/Approved Amount\$?([\d,]+(?:\.\d{2})?)/);
-    const maxApprovedMatch = section.match(/Maximum Amount Approved\$?([\d,]+(?:\.\d{2})?)/);
+      // Get the next 5 cells for this row
+      const sourceCell = cellsArray[firstCellIndex + 1];
+      const doctorCell = cellsArray[firstCellIndex + 2];
+      const procedureCell = cellsArray[firstCellIndex + 3];
+      const amountsCell = cellsArray[firstCellIndex + 4];
+      const datesCell = cellsArray[firstCellIndex + 5];
 
-    // Extract dates
-    const createdMatch = section.match(/Created(\d{4}-\d{2}-\d{2}[^L]*)/);
-    const updatedMatch = section.match(/Last Updated(\d{4}-\d{2}-\d{2}[^N]*)/);
+      // Extract source
+      const source = sourceCell?.querySelector('div > div')?.textContent?.trim() || '';
 
-    // Extract notes
-    const notesMatch = section.match(/Notes:([^L]*?)(?:Loss Reason:|$)/s);
-    const notes = notesMatch ? notesMatch[1].trim() : '';
+      // Extract doctor
+      const doctor = doctorCell?.querySelector('div > div')?.textContent?.trim() || '';
 
-    // Extract loss reason
-    const lossMatch = section.match(/Loss Reason:([^D]*?)(?:DAMARIS|Cheri|Kumanan|Angela|Brian|Jasmine|Rylee|fazilla|Monica|$)/s);
-    const lossReason = lossMatch ? lossMatch[1].trim() : null;
+      // Extract procedure
+      const procedure = procedureCell?.querySelector('div > div')?.textContent?.trim() || '';
 
-    // Generate unique ID from email + created date
-    const created = createdMatch ? createdMatch[1].trim() : '';
-    const applicationId = `${email}-${created}`.replace(/[^a-zA-Z0-9@.-]/g, '_');
+      // Extract amounts
+      let requestedAmount: number | null = null;
+      let approvedAmount: number | null = null;
+      let maxApproved: number | null = null;
 
-    if (name && email) {
-      applications.push({
-        applicationId,
-        tab,
-        applicantName: name,
+      if (amountsCell) {
+        const h5s = amountsCell.querySelectorAll('h5');
+        h5s.forEach((h5) => {
+          const label = h5.textContent?.trim() || '';
+          const nextDiv = h5.nextElementSibling;
+          const valueText = nextDiv?.textContent?.trim() || '';
+          const value = parseFloat(valueText.replace(/[$,]/g, ''));
+
+          if (!isNaN(value)) {
+            if (label.includes('Requested')) {
+              requestedAmount = value;
+            } else if (label.includes('Maximum')) {
+              maxApproved = value;
+            } else if (label.includes('Approved')) {
+              approvedAmount = value;
+            }
+          }
+        });
+      }
+
+      // Extract dates
+      let createdAt = '';
+      let lastUpdatedAt = '';
+
+      if (datesCell) {
+        const h5s = datesCell.querySelectorAll('h5');
+        h5s.forEach((h5) => {
+          const label = h5.textContent?.trim() || '';
+          const nextDiv = h5.nextElementSibling;
+          const dateText = nextDiv?.textContent?.trim() || '';
+
+          if (label === 'Created') {
+            createdAt = dateText;
+          } else if (label.includes('Last Updated')) {
+            lastUpdatedAt = dateText;
+          }
+        });
+      }
+
+      // Find the corresponding rowfooter for notes
+      // Rowfooters also have even/odd classes and appear after each row's cells
+      const allRowFooters = gridtable.querySelectorAll(`.gridtable-rowfooter.${rowClass}`);
+      const rowIndex = Math.floor(firstCellIndex / 6);
+      const rowFooter = allRowFooters[rowIndex];
+
+      let notes = '';
+      let lossReason: string | null = null;
+
+      if (rowFooter) {
+        // Get notes
+        const notesDiv = rowFooter.querySelector('div > div');
+        if (notesDiv) {
+          const notesH5 = notesDiv.querySelector('h5');
+          if (notesH5 && notesH5.textContent?.includes('Notes')) {
+            // Notes text comes after the h5 tag
+            notes = notesDiv.textContent?.replace(/Notes:\s*/, '').trim() || '';
+          }
+        }
+
+        // Check for loss reason
+        const allDivs = rowFooter.querySelectorAll('div');
+        for (const div of allDivs) {
+          const text = div.textContent || '';
+          if (text.includes('Loss Reason:')) {
+            lossReason = text.replace(/.*Loss Reason:\s*/, '').trim() || null;
+            break;
+          }
+        }
+      }
+
+      results.push({
+        name: nameText,
         email,
         status,
-        requestedAmount: requestedMatch ? parseFloat(requestedMatch[1].replace(/,/g, '')) : null,
-        approvedAmount: approvedMatch ? parseFloat(approvedMatch[1].replace(/,/g, '')) : null,
-        maximumAmountApproved: maxApprovedMatch ? parseFloat(maxApprovedMatch[1].replace(/,/g, '')) : null,
-        fundingAmount: null,
-        scheduledFundingDate: null,
-        fee: null,
-        rate: null,
+        requestedAmount,
+        approvedAmount,
+        maxApproved,
+        createdAt,
+        lastUpdatedAt,
         notes,
         lossReason,
-        createdAt: created,
-        lastUpdatedAt: updatedMatch ? updatedMatch[1].trim() : '',
-        source: 'Website',
-        doctor: 'Scott Gmora', // Default from examples
-        procedureDate: null,
-        rawJson: JSON.stringify({ email, section: section.substring(0, 300) }),
+        source,
+        doctor,
+        procedure
       });
     }
-  }
 
-  // Remove duplicates by email
-  const seen = new Set<string>();
-  return applications.filter(app => {
-    if (seen.has(app.email)) return false;
-    seen.add(app.email);
-    return true;
+    return results;
+  }, tab);
+
+  log(`Extracted ${applications.length} applications from DOM`);
+
+  // Convert to ScrapedApplication format
+  // Use email as stable applicationId - each patient has one unique email
+  return applications.map(app => {
+    const applicationId = app.email.toLowerCase();
+
+    // Convert name to title case and split into first/last
+    const { firstName, lastName } = parseAndFormatName(app.name);
+
+    return {
+      applicationId,
+      tab,
+      firstName,
+      lastName,
+      email: app.email,
+      status: app.status,
+      requestedAmount: app.requestedAmount,
+      approvedAmount: app.approvedAmount,
+      maximumAmountApproved: app.maxApproved,
+      fundingAmount: null,
+      scheduledFundingDate: null,
+      fee: null,
+      rate: null,
+      notes: app.notes,
+      lossReason: app.lossReason,
+      createdAt: app.createdAt,
+      lastUpdatedAt: app.lastUpdatedAt,
+      source: app.source,
+      doctor: app.doctor,
+      procedureDate: null,
+      rawJson: JSON.stringify({ email: app.email, firstName, lastName, status: app.status }),
+    };
   });
 }
 
-function extractNameFromSection(text: string): string {
-  // Look for capitalized words that could be a name
-  // Names typically appear as "FirstName LastName" before status
-  const lines = text.split(/\n|(?=[A-Z][a-z])/);
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i].trim();
-    // Check if it looks like a name (2-3 capitalized words)
-    if (/^[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?$/.test(line)) {
-      return line;
-    }
+/**
+ * Convert name to title case and split into first/last name
+ * Examples:
+ *   "DAMARIS FERNANDEZ" → { firstName: "Damaris", lastName: "Fernandez" }
+ *   "Cheri Brunning" → { firstName: "Cheri", lastName: "Brunning" }
+ *   "Mary Jane Watson" → { firstName: "Mary Jane", lastName: "Watson" }
+ */
+function parseAndFormatName(fullName: string): { firstName: string; lastName: string } {
+  // Convert to title case
+  const titleCase = fullName
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .trim();
+
+  // Split into first and last name
+  const parts = titleCase.split(' ').filter(p => p.length > 0);
+
+  if (parts.length === 0) {
+    return { firstName: '', lastName: '' };
   }
-  return '';
+
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: '' };
+  }
+
+  // Last word is last name, everything else is first name
+  const lastName = parts[parts.length - 1];
+  const firstName = parts.slice(0, -1).join(' ');
+
+  return { firstName, lastName };
 }

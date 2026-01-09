@@ -168,7 +168,8 @@ export function toStoredApplications(
   return scraped.map(app => ({
     applicationId: app.applicationId,
     tab: app.tab,
-    applicantName: app.applicantName,
+    firstName: app.firstName,
+    lastName: app.lastName,
     email: app.email,
     status: app.status,
     requestedAmount: app.requestedAmount,
