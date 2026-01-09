@@ -12,7 +12,14 @@ import { Page } from 'playwright';
 import { config } from '../config.js';
 import { log } from './browser.js';
 
-export async function login(page: Page): Promise<void> {
+const MAX_LOGIN_RETRIES = 3;
+const RETRY_DELAY_MS = 5000;
+
+async function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function attemptLogin(page: Page): Promise<void> {
   log('Navigating to login page...');
   await page.goto(config.beautifi.loginUrl, { waitUntil: 'networkidle' });
 
@@ -81,4 +88,34 @@ export async function login(page: Page): Promise<void> {
   }
 
   log('Successfully logged in!');
+}
+
+export async function login(page: Page): Promise<void> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_LOGIN_RETRIES; attempt++) {
+    try {
+      log(`Login attempt ${attempt}/${MAX_LOGIN_RETRIES}...`);
+      await attemptLogin(page);
+      return; // Success - exit retry loop
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      log(`Login attempt ${attempt} failed: ${lastError.message}`);
+
+      if (attempt < MAX_LOGIN_RETRIES) {
+        log(`Waiting ${RETRY_DELAY_MS / 1000}s before retry...`);
+        await delay(RETRY_DELAY_MS);
+
+        // Navigate away and back to reset page state
+        try {
+          await page.goto('about:blank');
+          await delay(1000);
+        } catch {
+          // Ignore navigation errors during reset
+        }
+      }
+    }
+  }
+
+  throw new Error(`Login failed after ${MAX_LOGIN_RETRIES} attempts. Last error: ${lastError?.message}`);
 }
