@@ -100,11 +100,54 @@ Credentials stored in `.env` (not committed):
 - `GOOGLE_SERVICE_ACCOUNT_JSON=` (reused from Sleeve Command Centre)
 - `SLACK_WEBHOOK_URL=https://hooks.slack.com/services/***`
 
-## Next Steps
+## Deployment
 
-1. **Replace dashboard** with operational status dashboard (not patient data)
-2. **Deploy to Railway** as a cron job (every 30 minutes)
-3. **Monitor** the Run Log sheet to ensure it's working
+- **Railway:** Cron job running every 30 minutes at `proactive-wisdom` project
+- **GitHub Pages:** Dashboard live at https://sbg1234.github.io/Beautify-Copilot/
+- **GitHub Repo:** https://github.com/sbg1234/Beautify-Copilot (public)
+
+## Session Log
+
+### 2026-01-08 (Evening Session)
+
+**What was accomplished:**
+- Created operational status dashboard (replaced patient data dashboard)
+- Fixed timestamps to use Toronto timezone (America/Toronto)
+- Added schedule frequency dropdown (15min to 6 hours)
+- Deployed to Railway as cron job (every 30 minutes)
+- Set up GitHub Pages for dashboard hosting
+- Made repo public to enable free GitHub Pages
+
+**Files changed:**
+- `dashboard/index.html` - Operational status dashboard with Toronto time
+- `index.html` - Copy of dashboard for GitHub Pages (root)
+- `Dockerfile` - Updated to build TypeScript during deployment
+- `package.json` - Pinned Playwright to exact version 1.40.0
+- `package-lock.json` - Updated to match package.json
+
+**Key decisions:**
+- Use GitHub Pages (free) for dashboard instead of Railway web server (costs $3-5/month)
+- Made repo public since no secrets in code (credentials in Railway env vars)
+- Pinned Playwright to 1.40.0 to match Docker image version
+
+**Problems encountered:**
+1. Dockerfile tried to copy non-existent `dist/` folder → Fixed by building during Docker build
+2. Playwright version mismatch (npm installed 1.57.0, Docker had 1.40.0) → Pinned to exact 1.40.0
+3. package-lock.json out of sync → Ran `npm install` to regenerate
+4. Missing environment variables in Railway → User needs to add via Variables tab
+
+**Incomplete work:**
+- Railway deployment failing due to missing environment variables
+- User needs to paste .env contents into Railway Variables → RAW Editor
+
+**Known issues:**
+- Dashboard shows hardcoded mock data, not live data from Google Sheets
+- To show live data would need to connect dashboard to Google Sheets API
+
+### Next Steps
+1. **Add environment variables to Railway** - Paste .env contents into Beautify-Copilot → Variables → RAW Editor
+2. **Verify cron job runs successfully** - Check Run Log in Google Sheets
+3. **Optional:** Connect dashboard to live Google Sheets data
 
 ## Reference Materials
 
