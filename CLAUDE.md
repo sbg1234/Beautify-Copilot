@@ -151,15 +151,18 @@ Credentials stored in `.env` (not committed):
 **What was accomplished:**
 - Added "Funded" tab to monitoring based on user feedback that Mandy uses all tabs except Subsidized
 - Added filter to skip Slack notifications for "Funded" transitions (status or tab changes to Funded are tracked but not announced)
+- Enhanced status/tab change notifications to include requested amount, approved amount, and current tab/status for quick context
 
 **Files changed:**
 - `src/scraper/types.ts` - Added 'Funded' to TabName type
 - `src/scraper/extractor.ts` - Added 'Funded' to TABS_TO_SCRAPE, TAB_URL_PATHS, and tabCounts
 - `src/notifications/slack.ts` - Added `shouldSkipNotification()` filter to suppress Funded transition alerts
+- `src/notifications/formatters.ts` - Enhanced `formatStatusChange()` and `formatTabChange()` with amount/context fields
 - `CLAUDE.md` - Updated documentation
 
-**Key decision:**
+**Key decisions:**
 - Funded tab is scraped and tracked in Google Sheets, but transitions to "Funded" don't trigger Slack notifications (per user request)
+- Status/tab notifications now include financial context so users don't need to search Slack history or portal
 
 ### Next Steps (Optional Enhancements)
 1. Connect dashboard to live Google Sheets data via API
