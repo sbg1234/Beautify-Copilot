@@ -52,7 +52,8 @@ export function formatNewApplication(app: ScrapedApplication): SlackMessage {
 
 export function formatStatusChange(change: Change): SlackMessage {
   const app = change.application;
-  const text = `🔄 *Status Update*\n*${app.applicantName}* moved from \`${change.previousValue}\` → \`${change.newValue}\``;
+  const approvedDisplay = app.approvedAmount ? formatMoney(app.approvedAmount) : 'N/A';
+  const text = `🔄 *Status Update*\n*${app.applicantName}* moved from \`${change.previousValue}\` → \`${change.newValue}\`\nRequested: ${formatMoney(app.requestedAmount)}\nApproved: ${approvedDisplay}\nTab: ${app.tab}`;
 
   return {
     text,
@@ -70,7 +71,8 @@ export function formatStatusChange(change: Change): SlackMessage {
 
 export function formatTabChange(change: Change): SlackMessage {
   const app = change.application;
-  const text = `📋 *Pipeline Update*\n*${app.applicantName}* moved from \`${change.previousValue}\` → \`${change.newValue}\``;
+  const approvedDisplay = app.approvedAmount ? formatMoney(app.approvedAmount) : 'N/A';
+  const text = `📋 *Pipeline Update*\n*${app.applicantName}* moved from \`${change.previousValue}\` → \`${change.newValue}\`\nRequested: ${formatMoney(app.requestedAmount)}\nApproved: ${approvedDisplay}\nStatus: ${app.status || 'Unknown'}`;
 
   return {
     text,
