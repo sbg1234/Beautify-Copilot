@@ -71,9 +71,36 @@ export async function notifyError(error: Error | string): Promise<void> {
   await sendToSlack(message);
 }
 
+/**
+ * Check if a change should be skipped for notifications
+ * Skip changes where the application is transitioning to "Funded" status/tab
+ */
+function shouldSkipNotification(change: Change): boolean {
+  // Skip status changes TO "Funded"
+  if (change.type === 'status_change' &&
+      typeof change.newValue === 'string' &&
+      change.newValue.toLowerCase() === 'funded') {
+    console.log(`Skipping notification: status changed to Funded for ${change.application.applicantName}`);
+    return true;
+  }
+
+  // Skip tab changes TO "Funded"
+  if (change.type === 'tab_change' && change.newValue === 'Funded') {
+    console.log(`Skipping notification: moved to Funded tab for ${change.application.applicantName}`);
+    return true;
+  }
+
+  return false;
+}
+
 export async function notifyChanges(changes: Change[]): Promise<void> {
+  // Filter out "Funded" transitions - no need to notify for these
+  const notifiableChanges = changes.filter(change => !shouldSkipNotification(change));
+
+  console.log(`Sending ${notifiableChanges.length} notifications (filtered ${changes.length - notifiableChanges.length} Funded transitions)`);
+
   // Send notifications with a small delay between each to avoid rate limits
-  for (const change of changes) {
+  for (const change of notifiableChanges) {
     try {
       await notifyChange(change);
       await new Promise(resolve => setTimeout(resolve, 500));
