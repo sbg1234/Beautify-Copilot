@@ -73,20 +73,20 @@ export async function notifyError(error: Error | string): Promise<void> {
 
 /**
  * Check if a change should be skipped for notifications
- * Skip changes where the application is transitioning to "Funded" status/tab
+ * Skip all notifications related to "Funded" applications - they're already complete
  */
 function shouldSkipNotification(change: Change): boolean {
-  // Skip status changes TO "Funded"
-  if (change.type === 'status_change' &&
-      typeof change.newValue === 'string' &&
-      change.newValue.toLowerCase() === 'funded') {
-    console.log(`Skipping notification: status changed to Funded for ${change.application.applicantName}`);
+  const app = change.application;
+
+  // Skip ANY notification for applications in the Funded tab
+  if (app.tab === 'Funded') {
+    console.log(`Skipping notification: application in Funded tab for ${app.applicantName}`);
     return true;
   }
 
-  // Skip tab changes TO "Funded"
-  if (change.type === 'tab_change' && change.newValue === 'Funded') {
-    console.log(`Skipping notification: moved to Funded tab for ${change.application.applicantName}`);
+  // Skip ANY notification for applications with Funded status
+  if (app.status && app.status.toLowerCase() === 'funded') {
+    console.log(`Skipping notification: application has Funded status for ${app.applicantName}`);
     return true;
   }
 
