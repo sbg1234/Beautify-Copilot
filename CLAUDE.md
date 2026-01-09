@@ -150,18 +150,21 @@ Credentials stored in `.env` (not committed):
 
 **What was accomplished:**
 - Added "Funded" tab to monitoring based on user feedback that Mandy uses all tabs except Subsidized
-- Added filter to skip Slack notifications for "Funded" transitions (status or tab changes to Funded are tracked but not announced)
+- Added filter to skip ALL Slack notifications for "Funded" applications (any app in Funded tab or with Funded status)
 - Enhanced status/tab change notifications to include requested amount, approved amount, and current tab/status for quick context
+- Upgraded Playwright from 1.40.0 to 1.57.0 (old version was crashing on macOS with Node.js v24)
 
 **Files changed:**
 - `src/scraper/types.ts` - Added 'Funded' to TabName type
 - `src/scraper/extractor.ts` - Added 'Funded' to TABS_TO_SCRAPE, TAB_URL_PATHS, and tabCounts
-- `src/notifications/slack.ts` - Added `shouldSkipNotification()` filter to suppress Funded transition alerts
+- `src/notifications/slack.ts` - Added `shouldSkipNotification()` filter to suppress ALL Funded-related alerts
 - `src/notifications/formatters.ts` - Enhanced `formatStatusChange()` and `formatTabChange()` with amount/context fields
+- `package.json` - Upgraded Playwright to ^1.57.0
+- `Dockerfile` - Updated to use mcr.microsoft.com/playwright:v1.57.0-noble
 - `CLAUDE.md` - Updated documentation
 
 **Key decisions:**
-- Funded tab is scraped and tracked in Google Sheets, but transitions to "Funded" don't trigger Slack notifications (per user request)
+- Funded tab is scraped and tracked in Google Sheets, but NO notifications for Funded applications (per user request)
 - Status/tab notifications now include financial context so users don't need to search Slack history or portal
 
 ### Next Steps (Optional Enhancements)
